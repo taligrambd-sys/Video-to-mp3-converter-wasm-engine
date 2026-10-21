@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video to MP3 Converter — © Kaalsoft</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(160deg, #0f2027 0%, #203a43 55%, #2c5364 100%);
+        min-height: 100vh;
+        color: #eef6f8;
+        display: flex;
+        justify-content: center;
+        padding: 20px 14px 40px;
+    }
+    .wrap { width: 100%; max-width: 520px; }
+    header { text-align: center; margin: 14px 0 22px; }
+    header .logo { font-size: 44px; }
+    header h1 { font-size: 24px; font-weight: 700; letter-spacing: .3px; margin-top: 6px; }
+    header p { color: #a9c6cf; font-size: 14px; margin-top: 5px; }
+    .card {
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 18px;
+        padding: 20px 18px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 12px 32px rgba(0,0,0,.35);
+    }
+    .engine { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #a9c6cf; margin-bottom: 16px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #f0ad4e; flex: none; }
+    .dot.ok { background: #2ecc71; }
+    .dot.bad { background: #e74c3c; }
+    .drop {
+        border: 2px dashed rgba(255,255,255,.35);
+        border-radius: 14px;
+        padding: 30px 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color .15s, background .15s;
+    }
+    .drop:hover, .drop.over { border-color: #39c2d7; background: rgba(57,194,215,.08); }
+    .drop .big { font-size: 34px; }
+    .drop .t1 { font-size: 16px; font-weight: 600; margin-top: 8px; }
+    .drop .t2 { font-size: 13px; color: #a9c6cf; margin-top: 4px; word-break: break-all; }
+    .label { font-size: 13px; color: #a9c6cf; margin: 18px 0 8px; }
+    .pills { display: flex; gap: 8px; }
+    .pill {
+        flex: 1; text-align: center; padding: 10px 0; border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.25); font-size: 14px; cursor: pointer;
+        user-select: none; background: rgba(255,255,255,.05);
+    }
+    .pill.sel { background: #39c2d7; border-color: #39c2d7; color: #06222a; font-weight: 700; }
+    button.main {
+        width: 100%; margin-top: 20px; padding: 14px; border: 0; border-radius: 12px;
+        background: linear-gradient(90deg, #11998e, #38ef7d); color: #052e22;
+        font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    button.main:disabled { opacity: .45; cursor: not-allowed; }
+    .progressbox { display: none; margin-top: 20px; }
+    .bar { height: 12px; border-radius: 999px; background: rgba(255,255,255,.15); overflow: hidden; }
+    .bar > div {
+        height: 100%; width: 0%;
+        background: linear-gradient(90deg, #39c2d7, #38ef7d);
+        border-radius: 999px; transition: width .25s ease;
+    }
+    .ptext { font-size: 13px; color: #a9c6cf; margin-top: 7px; text-align: center; }
+    .result { display: none; margin-top: 20px; text-align: center; }
+    .result .ok { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+    .result audio { width: 100%; }
+    a.dl {
+        display: block; margin-top: 12px; padding: 13px; border-radius: 12px;
+        background: #39c2d7; color: #06222a; font-weight: 700; text-decoration: none; font-size: 15px;
+    }
+    .err {
+        display: none; margin-top: 16px; background: rgba(231,76,60,.15);
+        border: 1px solid rgba(231,76,60,.5); color: #ffb3ab;
+        padding: 11px 13px; border-radius: 10px; font-size: 13.5px; word-break: break-word;
+    }
+    .hint { font-size: 12.5px; color: #8fb0bc; margin-top: 14px; line-height: 1.5; }
+    footer { text-align: center; color: #7fa3af; font-size: 12.5px; margin-top: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <div class="logo">🎵</div>
+        <h1>Video to MP3 Converter</h1>
+        <p>Convert any video to MP3 — right on your device, fully offline.<br>Large files supported (parallel fast engine v4).</p>
+    </header>
+
+    <div class="card">
+        <div class="engine"><span class="dot" id="edot"></span><span id="estatus">Loading engine…</span></div>
+
+        <div class="drop" id="drop">
+            <div class="big">📂</div>
+            <div class="t1">Tap to choose a video</div>
+            <div class="t2" id="fname">or drag &amp; drop it here</div>
+        </div>
+        <input type="file" id="file" accept="video/*,audio/*,.mkv,.avi,.flv,.mp4,.mov,.webm" hidden>
+
+        <div class="label">MP3 quality (bitrate)</div>
+        <div class="pills" id="pills">
+            <div class="pill" data-k="128">128 kbps</div>
+            <div class="pill sel" data-k="192">192 kbps</div>
+            <div class="pill" data-k="320">320 kbps</div>
+        </div>
+
+        <button class="main" id="go" disabled>Convert to MP3</button>
+
+        <div class="progressbox" id="pbox">
+            <div class="bar"><div id="pfill"></div></div>
+            <div class="ptext" id="ptext">Converting… 0%</div>
+        </div>
+
+        <div class="result" id="result">
+            <div class="ok">✅ Done! Your MP3 is ready</div>
+            <audio id="player" controls></audio>
+            <a class="dl" id="dllink" href="#" download>⬇️ Download MP3</a>
+        </div>
+
+        <div class="err" id="err"></div>
+
+        <div class="hint">Tip: keep this page open with the screen on while converting — phones slow down background pages. Everything runs locally on your device; your file is never uploaded anywhere.</div>
+    </div>
+
+    <footer>Powered by FFmpeg + LAME (WebAssembly) · © Kaalsoft</footer>
+</div>
+
+<script src="video-to-mp3-stream.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    var fileInput = document.getElementById('file');
+    var drop = document.getElementById('drop');
+    var fname = document.getElementById('fname');
+    var goBtn = document.getElementById('go');
+    var edot = document.getElementById('edot');
+    var estatus = document.getElementById('estatus');
+    var pbox = document.getElementById('pbox');
+    var pfill = document.getElementById('pfill');
+    var ptext = document.getElementById('ptext');
+    var result = document.getElementById('result');
+    var player = document.getElementById('player');
+    var dllink = document.getElementById('dllink');
+    var errBox = document.getElementById('err');
+    var pills = document.getElementById('pills');
+
+    var chosenFile = null;
+    var bitrate = 192;
+    var resultUrl = null;
+    var busy = false;
+
+    function fmtSize(n) {
+        if (n >= 1073741824) return (n / 1073741824).toFixed(2) + ' GB';
+        if (n >= 1048576) return (n / 1048576).toFixed(2) + ' MB';
+        if (n >= 1024) return (n / 1024).toFixed(1) + ' KB';
+        return n + ' B';
+    }
+
+    function showError(msg) {
+        errBox.textContent = '⚠️ ' + msg;
+        errBox.style.display = 'block';
+    }
+    function hideError() { errBox.style.display = 'none'; }
+
+    // Engine warm-up: also surfaces the file:// problem early.
+    if (window.VideoToMp3Stream) {
+        VideoToMp3Stream.version().then(function (v) {
+            edot.className = 'dot ok';
+            estatus.textContent = 'Engine ready · ' + v;
+        }).catch(function (e) {
+            edot.className = 'dot bad';
+            estatus.textContent = 'Engine failed to load';
+            showError((e && e.message) ? e.message : String(e));
+        });
+    } else {
+        edot.className = 'dot bad';
+        estatus.textContent = 'Engine failed to load';
+        showError('video-to-mp3-stream.js could not be loaded. All converter files must be in the same folder and served over http(s) (or the appassets scheme inside an app) — file:// pages cannot load Web Workers or WebAssembly.');
+    }
+
+    function pick(f) {
+        if (!f || busy) return;
+        chosenFile = f;
+        fname.textContent = f.name + '  (' + fmtSize(f.size) + ')';
+        result.style.display = 'none';
+        hideError();
+        goBtn.disabled = false;
+    }
+
+    drop.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) pick(fileInput.files[0]);
+    });
+    ['dragover', 'dragenter'].forEach(function (ev) {
+        drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+        drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+    });
+    drop.addEventListener('drop', function (e) {
+        var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) pick(f);
+    });
+
+    pills.addEventListener('click', function (e) {
+        var t = e.target;
+        if (!t.classList || !t.classList.contains('pill')) return;
+        var all = pills.querySelectorAll('.pill');
+        for (var i = 0; i < all.length; i++) all[i].classList.remove('sel');
+        t.classList.add('sel');
+        bitrate = parseInt(t.getAttribute('data-k'), 10) || 192;
+    });
+
+    goBtn.addEventListener('click', function () {
+        if (!chosenFile || busy) return;
+        busy = true;
+        hideError();
+        result.style.display = 'none';
+        goBtn.disabled = true;
+        pbox.style.display = 'block';
+        pfill.style.width = '0%';
+        ptext.textContent = 'Converting… 0%';
+
+        VideoToMp3Stream.convert(chosenFile, {
+            bitrateKbps: bitrate,
+            onProgress: function (pct) {
+                pfill.style.width = pct + '%';
+                ptext.textContent = 'Converting… ' + pct + '%';
+            }
+        }).then(function (blob) {
+            pfill.style.width = '100%';
+            ptext.textContent = 'Converting… 100%';
+            if (resultUrl) URL.revokeObjectURL(resultUrl);
+            resultUrl = URL.createObjectURL(blob);
+            player.src = resultUrl;
+            var base = chosenFile.name.replace(/\.[^.]+$/, '');
+            dllink.href = resultUrl;
+            dllink.setAttribute('download', base + '.mp3');
+            result.style.display = 'block';
+        }).catch(function (e) {
+            showError((e && e.message) ? e.message : String(e));
+        }).then(function () {
+            busy = false;
+            goBtn.disabled = false;
+        });
+    });
+})();
+</script>
+</body>
+</html>
